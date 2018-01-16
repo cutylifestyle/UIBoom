@@ -20,8 +20,6 @@ import com.lehand.util.DisplayUtil;
  */
 
 public class TabPageIndicator extends HorizontalScrollView implements PageIndicator {
-    // TODO: 2018/1/12 requestLayout在什么地方写
-    // TODO: 2018/1/12 requestLayout源码分析
     // TODO: 2018/1/12  在这个视图都渲染成功后，我们的操作是如何实现的。比如setText()里面
     // TODO: 2018/1/12 发生了什么
     private static final String TAG = TabPageIndicator.class.getName();
