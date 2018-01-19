@@ -1,13 +1,16 @@
 package com.sixin.uiboom;
 
+import android.Manifest;
+import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 
 import com.lehand.indicator.TabPageIndicator;
+import com.sixin.uiboom.permissionsutil.PermissionsUtil;
 
 import java.util.ArrayList;
 
@@ -19,8 +22,11 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+        PermissionsUtil.requestPermissions(this,
+                100,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE);
         setContentView(R.layout.activity_main);
+        super.onCreate(savedInstanceState);
         indicator = findViewById(R.id.indicator);
         viewPager = findViewById(R.id.viewPager);
         for(int i = 0 ; i < 100 ; i++){
@@ -28,6 +34,15 @@ public class MainActivity extends AppCompatActivity {
         }
         viewPager.setAdapter(new MyAdapter(getSupportFragmentManager()));
         indicator.setViewPager(viewPager);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        PermissionsUtil.onRequestPermissionsResult(this,
+                100,
+                permissions,
+                grantResults);
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     class MyAdapter extends FragmentStatePagerAdapter{

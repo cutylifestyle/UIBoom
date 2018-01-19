@@ -180,6 +180,7 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
         for(int i = 0 ; i < tabViewCount ; i++){
             TabView tabView = (TabView) childView.getChildAt(i);
             if(i == position){
+                // TODO: 2018/1/19 这个方法存在性能问题
                 tabView.switchBottomDrawable(true);
             }else{
                 tabView.switchBottomDrawable(false);
