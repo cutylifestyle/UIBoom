@@ -20,8 +20,7 @@ import com.lehand.util.DisplayUtil;
  */
 
 public class TabPageIndicator extends HorizontalScrollView implements PageIndicator {
-    // TODO: 2018/1/12  在这个视图都渲染成功后，我们的操作是如何实现的。比如setText()里面
-    // TODO: 2018/1/12 发生了什么
+    // TODO: 2018/1/26 比对编码，为什么它的性能会更优于我的
     private static final String TAG = TabPageIndicator.class.getName();
     private ViewPager mViewPager;
 
@@ -100,8 +99,10 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
 
     @Override
     public void onPageSelected(int position) {
+//        Debug.startMethodTracing("test");
         changeCurrentItem(position);
         scrollToTab(position);
+//        Debug.stopMethodTracing();
     }
 
     @Override
@@ -181,9 +182,9 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
             TabView tabView = (TabView) childView.getChildAt(i);
             if(i == position){
                 // TODO: 2018/1/19 这个方法存在性能问题
-                tabView.switchBottomDrawable(true);
+                tabView.setSelected(true);
             }else{
-                tabView.switchBottomDrawable(false);
+                tabView.setSelected(false);
             }
         }
     }

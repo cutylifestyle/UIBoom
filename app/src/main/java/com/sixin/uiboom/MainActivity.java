@@ -8,6 +8,7 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 
 import com.lehand.indicator.TabPageIndicator;
 import com.sixin.uiboom.permissionsutil.PermissionsUtil;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = MainActivity.class.getName();
     private TabPageIndicator indicator;
     private ViewPager viewPager;
     private ArrayList<String> data = new ArrayList<>();
@@ -34,6 +36,8 @@ public class MainActivity extends AppCompatActivity {
         }
         viewPager.setAdapter(new MyAdapter(getSupportFragmentManager()));
         indicator.setViewPager(viewPager);
+        int a ='5';
+        Log.d(TAG,"...."+a);
     }
 
     @Override
