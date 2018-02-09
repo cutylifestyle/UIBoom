@@ -8,7 +8,7 @@ import android.support.v4.view.ViewPager;
  * 指示器的职责在于显示所有的标签以及当前标签下对应的视图
  */
 
-public interface PageIndicator extends ViewPager.OnPageChangeListener{
+public interface PageIndicator{
 
     /**
      * 设置与指示器关联的viewPager

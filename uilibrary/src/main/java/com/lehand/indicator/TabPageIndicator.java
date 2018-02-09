@@ -1,9 +1,13 @@
 package com.lehand.indicator;
 
 import android.content.Context;
+import android.content.res.TypedArray;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.View;
@@ -13,6 +17,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.lehand.util.DisplayUtil;
+import com.sixin.uilibrary.R;
 
 
 /**
@@ -20,9 +25,15 @@ import com.lehand.util.DisplayUtil;
  */
 
 public class TabPageIndicator extends HorizontalScrollView implements PageIndicator {
-    // TODO: 2018/1/26 比对编码，为什么它的性能会更优于我的
+    // TODO: 2018/2/9 关于focus select press的认识  关于style的认识 selector的认识
     private static final String TAG = TabPageIndicator.class.getName();
+
     private ViewPager mViewPager;
+    private Runnable mTabSelector;
+    private LinearLayout mChildView;
+    private ViewPager.OnPageChangeListener mListener;
+    private TabPageChangeListener mTabPageIndicatorListener;
+    private Drawable mIndicatorDrawable;
 
     private static final float DEFAULT_TEXT_SIZE = 16.0f;
     private static final int CRITICAL_VALUE = 4;
@@ -41,20 +52,30 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
 
     public TabPageIndicator(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+
+        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.TabPageIndicator);
+        mIndicatorDrawable = a.getDrawable(R.styleable.TabPageIndicator_indicator_style);
+        a.recycle();
+
         setHorizontalScrollBarEnabled(false);
         setMinimumHeight(MINIMUM_HEIGHT);
         initChildView(context);
     }
 
-    // TODO: 2018/1/11 view中的post方法的作用  removeCallBacks()方法
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        if (mTabSelector != null) {
+            post(mTabSelector);
+        }
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
+        if (mTabSelector != null) {
+            removeCallbacks(mTabSelector);
+        }
     }
 
     @Override
@@ -78,67 +99,56 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
             mViewPager.addOnPageChangeListener(null);
             mViewPager = viewPager;
         }
-        mViewPager.addOnPageChangeListener(this);
+        if(mTabPageIndicatorListener != null){
+            mViewPager.removeOnPageChangeListener(mTabPageIndicatorListener);
+        }
+        mTabPageIndicatorListener = new TabPageChangeListener();
+        mViewPager.addOnPageChangeListener(mTabPageIndicatorListener);
         notifyDataSetChanged();
     }
 
-    // TODO: 2018/1/12 这个方法开放存在的问题  存在明显的bug
+    public void addOnPageChangeListener(ViewPager.OnPageChangeListener listener){
+        mListener = listener;
+    }
+
     @Override
     public void notifyDataSetChanged() {
-        //scrollView的子view：linearLayout
-        LinearLayout childView = (LinearLayout) getChildAt(0);
-        childView.removeAllViews();
+        mChildView.removeAllViews();
         addTabViews();
-        // TODO: 2018/1/11 requestLayout的作用 有没有必要写
+        changeCurrentItem(1);
         requestLayout();
     }
 
-    @Override
-    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-    }
-
-    @Override
-    public void onPageSelected(int position) {
-//        Debug.startMethodTracing("test");
-        changeCurrentItem(position);
-        scrollToTab(position);
-//        Debug.stopMethodTracing();
-    }
-
-    @Override
-    public void onPageScrollStateChanged(int state) {
-
-    }
-
     private void initChildView(Context context) {
-        TabLayout childView = new TabLayout(context);
-        childView.setLayoutParams(new FrameLayout.LayoutParams(
+        mChildView = new LinearLayout(context);
+        mChildView.setLayoutParams(new FrameLayout.LayoutParams(
                 LayoutParams.MATCH_PARENT,
                 LayoutParams.WRAP_CONTENT));
-        addView(childView);
+        addView(mChildView);
     }
 
     private void addTabViews(){
-        //scrollView的子view：linearLayout
-        TabLayout childView = (TabLayout) getChildAt(0);
-
         int viewPagerChildCount = mViewPager.getAdapter().getCount();
         for(int i = 0 ; i < viewPagerChildCount ; i++){
-            TabView tabView = new TabView(getContext());
+            TextView tabView = new TextView(getContext());
             initTabView(tabView, i);
-            childView.addView(tabView,i);
+            mChildView.addView(tabView,i);
         }
     }
 
-    // TODO: 2018/1/10 有些设置提供自定义属性  考虑内容过长的处理方式
     private void initTabView(TextView tabView, final int i) {
         tabView.setLayoutParams(new LinearLayout.LayoutParams(
                 LayoutParams.WRAP_CONTENT,
                 LayoutParams.WRAP_CONTENT));
         tabView.setGravity(Gravity.CENTER);
         tabView.setTextSize(DEFAULT_TEXT_SIZE);
-//        tabView.setEllipsize(TextUtils.TruncateAt.END);
+        tabView.setPadding(22,15,22,20);
+        tabView.setTypeface(Typeface.create(Typeface.SANS_SERIF,Typeface.BOLD));
+        tabView.setEllipsize(TextUtils.TruncateAt.END);
         tabView.setSingleLine(true);
+        if(mIndicatorDrawable != null){
+            tabView.setBackground(mIndicatorDrawable);
+        }
         String title = (String) mViewPager.getAdapter().getPageTitle(i);
         if(title == null || "".equals(title)){
             throw new IllegalArgumentException("ViewPager must have title");
@@ -155,19 +165,17 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
 
 
     private void resetTabViewLayoutParams() {
-        //scrollView的子view：linearLayout
-        TabLayout childView = (TabLayout) getChildAt(0);
-        int tabViewCount = childView.getChildCount();
+        int tabViewCount = mChildView.getChildCount();
         if(tabViewCount < CRITICAL_VALUE){
             for(int i = 0 ; i < tabViewCount ; i++){
-                View tabView = childView.getChildAt(i);
+                View tabView = mChildView.getChildAt(i);
                 tabView.setLayoutParams(new LinearLayout.LayoutParams(
                         mScreenWidth / tabViewCount,
                         LayoutParams.WRAP_CONTENT));
             }
         }else{
             for(int i = 0 ; i < tabViewCount ; i++){
-                View tabView = childView.getChildAt(i);
+                View tabView = mChildView.getChildAt(i);
                 tabView.setLayoutParams(new LinearLayout.LayoutParams(
                         mTabViewWidth,
                         LayoutParams.WRAP_CONTENT));
@@ -176,12 +184,10 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
     }
 
     private void changeCurrentItem(int position) {
-        TabLayout childView = (TabLayout) getChildAt(0);
-        int tabViewCount = childView.getChildCount();
+        int tabViewCount = mChildView.getChildCount();
         for(int i = 0 ; i < tabViewCount ; i++){
-            TabView tabView = (TabView) childView.getChildAt(i);
+            TextView tabView = (TextView) mChildView.getChildAt(i);
             if(i == position){
-                // TODO: 2018/1/19 这个方法存在性能问题
                 tabView.setSelected(true);
             }else{
                 tabView.setSelected(false);
@@ -189,11 +195,46 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
         }
     }
 
-    private void scrollToTab(int position) {
-        TabLayout childView = (TabLayout) getChildAt(0);
-        View tabView = childView.getChildAt(position);
-        int scrollPos = tabView.getLeft() - (getWidth() - tabView.getWidth())/2;
-        smoothScrollTo(scrollPos,0);
+    private void scrollToTab(final int position) {
+        if(mTabSelector != null){
+            removeCallbacks(mTabSelector);
+        }
+        mTabSelector = new Runnable() {
+            @Override
+            public void run() {
+                View tabView = mChildView.getChildAt(position);
+                int scrollPos = tabView.getLeft() - (getWidth() - tabView.getWidth())/2;
+                smoothScrollTo(scrollPos,0);
+                mTabSelector = null;
+            }
+        };
+        post(mTabSelector);
+    }
+
+    private class TabPageChangeListener implements ViewPager.OnPageChangeListener{
+
+        @Override
+        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            if(mListener != null){
+                mListener.onPageScrolled(position,positionOffset,positionOffsetPixels);
+            }
+        }
+
+        @Override
+        public void onPageSelected(int position) {
+            changeCurrentItem(position);
+            scrollToTab(position);
+            if(mListener != null){
+                mListener.onPageSelected(position);
+            }
+        }
+
+        @Override
+        public void onPageScrollStateChanged(int state) {
+            if(mListener != null){
+                mListener.onPageScrollStateChanged(state);
+            }
+        }
     }
 
 }

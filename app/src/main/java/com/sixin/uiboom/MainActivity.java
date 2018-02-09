@@ -1,55 +1,34 @@
 package com.sixin.uiboom;
 
-import android.Manifest;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentStatePagerAdapter;
+import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
-import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 
 import com.lehand.indicator.TabPageIndicator;
-import com.sixin.uiboom.permissionsutil.PermissionsUtil;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends FragmentActivity {
 
-    private static final String TAG = MainActivity.class.getName();
-    private TabPageIndicator indicator;
-    private ViewPager viewPager;
     private ArrayList<String> data = new ArrayList<>();
-
+    private TabPageIndicator indicator;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        PermissionsUtil.requestPermissions(this,
-                100,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        setContentView(R.layout.activity_main);
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
         indicator = findViewById(R.id.indicator);
-        viewPager = findViewById(R.id.viewPager);
-        for(int i = 0 ; i < 100 ; i++){
+        ViewPager viewPager = findViewById(R.id.viewPager);
+        for(int i = 0 ; i < 9 ; i++){
             data.add("第" + i + "个");
         }
         viewPager.setAdapter(new MyAdapter(getSupportFragmentManager()));
         indicator.setViewPager(viewPager);
-        int a ='5';
-        Log.d(TAG,"...."+a);
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        PermissionsUtil.onRequestPermissionsResult(this,
-                100,
-                permissions,
-                grantResults);
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-    }
-
-    class MyAdapter extends FragmentStatePagerAdapter{
+    class MyAdapter extends FragmentPagerAdapter{
 
         public MyAdapter(FragmentManager fm) {
             super(fm);
