@@ -13,11 +13,11 @@ import com.sixin.uilibrary.R;
 
 public class TabView extends TextView {
     public TabView(Context context) {
-        super(context);
+        this(context,null);
     }
 
     public TabView(Context context, @Nullable AttributeSet attrs) {
-        this(context, attrs, R.attr.indicator_style);
+        this(context, attrs,R.attr.tabPageIndicatorStyle);
     }
 
     public TabView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {

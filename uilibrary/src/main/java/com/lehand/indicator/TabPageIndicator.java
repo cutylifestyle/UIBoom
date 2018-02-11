@@ -1,9 +1,7 @@
 package com.lehand.indicator;
 
 import android.content.Context;
-import android.content.res.TypedArray;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
@@ -17,7 +15,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.lehand.util.DisplayUtil;
-import com.sixin.uilibrary.R;
 
 
 /**
@@ -25,15 +22,12 @@ import com.sixin.uilibrary.R;
  */
 
 public class TabPageIndicator extends HorizontalScrollView implements PageIndicator {
-    // TODO: 2018/2/9 关于focus select press的认识  关于style的认识 selector的认识
-    private static final String TAG = TabPageIndicator.class.getName();
 
     private ViewPager mViewPager;
     private Runnable mTabSelector;
     private LinearLayout mChildView;
     private ViewPager.OnPageChangeListener mListener;
     private TabPageChangeListener mTabPageIndicatorListener;
-    private Drawable mIndicatorDrawable;
 
     private static final float DEFAULT_TEXT_SIZE = 16.0f;
     private static final int CRITICAL_VALUE = 4;
@@ -52,11 +46,6 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
 
     public TabPageIndicator(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-
-        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.TabPageIndicator);
-        mIndicatorDrawable = a.getDrawable(R.styleable.TabPageIndicator_indicator_style);
-        a.recycle();
-
         setHorizontalScrollBarEnabled(false);
         setMinimumHeight(MINIMUM_HEIGHT);
         initChildView(context);
@@ -115,7 +104,7 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
     public void notifyDataSetChanged() {
         mChildView.removeAllViews();
         addTabViews();
-        changeCurrentItem(1);
+        changeCurrentItem(0);
         requestLayout();
     }
 
@@ -130,7 +119,7 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
     private void addTabViews(){
         int viewPagerChildCount = mViewPager.getAdapter().getCount();
         for(int i = 0 ; i < viewPagerChildCount ; i++){
-            TextView tabView = new TextView(getContext());
+            TextView tabView = new TabView(getContext());
             initTabView(tabView, i);
             mChildView.addView(tabView,i);
         }
@@ -146,9 +135,6 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
         tabView.setTypeface(Typeface.create(Typeface.SANS_SERIF,Typeface.BOLD));
         tabView.setEllipsize(TextUtils.TruncateAt.END);
         tabView.setSingleLine(true);
-        if(mIndicatorDrawable != null){
-            tabView.setBackground(mIndicatorDrawable);
-        }
         String title = (String) mViewPager.getAdapter().getPageTitle(i);
         if(title == null || "".equals(title)){
             throw new IllegalArgumentException("ViewPager must have title");
