@@ -1,14 +1,11 @@
 package com.lehand.indicator;
 
 import android.content.Context;
-import android.graphics.Typeface;
 import android.support.annotation.NonNull;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
-import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
@@ -17,20 +14,19 @@ import android.widget.TextView;
 
 import com.lehand.util.DisplayUtil;
 
-
 /**
  * @author zhou
- * <p>默认版本的指示器</p>
+ * <p>通过颜色变换来实现的指示器</p>
  */
 
-public class TabPageIndicator extends HorizontalScrollView implements PageIndicator {
+public class ColorTabPageIndicator extends HorizontalScrollView implements PageIndicator {
 
-    private static final String TAG = TabPageIndicator.class.getName();
+    private static final String TAG = ColorTabPageIndicator.class.getName();
     private ViewPager mViewPager;
     private Runnable mTabSelector;
     private LinearLayout mChildView;
     private ViewPager.OnPageChangeListener mListener;
-    private TabPageChangeListener mTabPageIndicatorListener;
+    private ColorTabPageIndicator.TabPageChangeListener mTabPageIndicatorListener;
 
     private static final float DEFAULT_TEXT_SIZE = 16.0f;
     private static final int CRITICAL_VALUE = 4;
@@ -39,15 +35,21 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
     private final int mScreenWidth = DisplayUtil.getDisplayWidth(getContext());
     private final int mTabViewWidth = mScreenWidth / 4;
 
-    public TabPageIndicator(Context context) {
+    private int  mCurrentScrollX;
+
+    private boolean needEnsurePosition;
+    private int nextPosition;
+    private int currentPosition;
+
+    public ColorTabPageIndicator(Context context) {
         this(context, null);
     }
 
-    public TabPageIndicator(Context context, AttributeSet attrs) {
+    public ColorTabPageIndicator(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public TabPageIndicator(Context context, AttributeSet attrs, int defStyleAttr) {
+    public ColorTabPageIndicator(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         setHorizontalScrollBarEnabled(false);
         setMinimumHeight(MINIMUM_HEIGHT);
@@ -80,7 +82,7 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
     public void setViewPager(@NonNull ViewPager viewPager) {
         final PagerAdapter pagerAdapter = viewPager.getAdapter();
         if(pagerAdapter == null){
-           throw new IllegalStateException("ViewPager does not have adapter instance.");
+            throw new IllegalStateException("ViewPager does not have adapter instance.");
         }
         if(mViewPager == viewPager){
             return;
@@ -94,7 +96,7 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
         if(mTabPageIndicatorListener != null){
             mViewPager.removeOnPageChangeListener(mTabPageIndicatorListener);
         }
-        mTabPageIndicatorListener = new TabPageChangeListener();
+        mTabPageIndicatorListener = new ColorTabPageIndicator.TabPageChangeListener();
         mViewPager.addOnPageChangeListener(mTabPageIndicatorListener);
         notifyDataSetChanged();
     }
@@ -122,7 +124,7 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
     private void addTabViews(){
         int viewPagerChildCount = mViewPager.getAdapter().getCount();
         for(int i = 0 ; i < viewPagerChildCount ; i++){
-            TextView tabView = new TabView(getContext());
+            TextView tabView = new ColorTabView(getContext());
             initTabView(tabView, i);
             mChildView.addView(tabView,i);
         }
@@ -132,26 +134,18 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
         tabView.setLayoutParams(new LinearLayout.LayoutParams(
                 LayoutParams.WRAP_CONTENT,
                 LayoutParams.WRAP_CONTENT));
-        tabView.setGravity(Gravity.CENTER);
-        tabView.setTextSize(DEFAULT_TEXT_SIZE);
-        tabView.setPadding(22,15,22,20);
-        tabView.setTypeface(Typeface.create(Typeface.SANS_SERIF,Typeface.BOLD));
-        tabView.setEllipsize(TextUtils.TruncateAt.END);
-        tabView.setSingleLine(true);
         String title = (String) mViewPager.getAdapter().getPageTitle(i);
         if(title == null || "".equals(title)){
             throw new IllegalArgumentException("ViewPager must have title");
         }
         tabView.setText(mViewPager.getAdapter().getPageTitle(i));
-
         tabView.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                mViewPager.setCurrentItem(i,true);
+                mViewPager.setCurrentItem(i,false);
             }
         });
     }
-
 
     private void resetTabViewLayoutParams() {
         int tabViewCount = mChildView.getChildCount();
@@ -175,11 +169,11 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
     private void changeCurrentItem(int position) {
         int tabViewCount = mChildView.getChildCount();
         for(int i = 0 ; i < tabViewCount ; i++){
-            TextView tabView = (TextView) mChildView.getChildAt(i);
+            ColorTabView tabView = (ColorTabView) mChildView.getChildAt(i);
             if(i == position){
-                tabView.setSelected(true);
+                tabView.setInitColor(true);
             }else{
-                tabView.setSelected(false);
+                tabView.setInitColor(false);
             }
         }
     }
@@ -200,11 +194,49 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
         post(mTabSelector);
     }
 
+    // TODO: 2018/2/27  维护一个位置关系  谁是当前的位置   谁是下一个位置
+    private void notifyTabViewUpdate(int position, float positionOffset) {
+        int d = justScrollDirection(positionOffset);
+        if (!needEnsurePosition && d != 0) {
+            nextPosition = position+1;
+            needEnsurePosition = true;
+        }
+        if (d != 0) {
+            handleUpdate(d,position, nextPosition,positionOffset);
+        }
+    }
+
+    private void handleUpdate(int d, int currentPostion, int nextPosition, float postionOffset) {
+        ColorTabView currentTabView = (ColorTabView) mChildView.getChildAt(currentPostion);
+        ColorTabView nextTabView = (ColorTabView) mChildView.getChildAt(nextPosition);
+        if (currentTabView != null && nextTabView != null) {
+            if (d > 0) {
+                currentTabView.onColorOffset(d,postionOffset,false);
+                nextTabView.onColorOffset(d,postionOffset,true);
+            } else if (d < 0) {
+                currentTabView.onColorOffset(d,postionOffset, true);
+                nextTabView.onColorOffset(d,postionOffset,false);
+            }
+        }
+    }
+
+    // TODO: 2018/2/27 这儿的mCurrentScrollX可能存在bug
+    private int justScrollDirection(float positionOffset) {
+        int result = mViewPager.getScrollX() - mCurrentScrollX;
+        mCurrentScrollX = mViewPager.getScrollX();
+        return result;
+    }
+
     private class TabPageChangeListener implements ViewPager.OnPageChangeListener{
 
         @Override
         public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-            Log.d(TAG, "position:" + position + " positionOffset:" + positionOffset + " positionOffsetPixels:" + positionOffsetPixels);
+            if(position == currentPosition){
+                notifyTabViewUpdate(position,positionOffset);
+            }else{
+                currentPosition = position;
+            }
+            Log.d(TAG, "position:" + position+" positionOffset:"+positionOffset);
             if(mListener != null){
                 mListener.onPageScrolled(position,positionOffset,positionOffsetPixels);
             }
@@ -212,6 +244,7 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
 
         @Override
         public void onPageSelected(int position) {
+//            Log.d(TAG, "onPageSelected:" + position);
             changeCurrentItem(position);
             scrollToTab(position);
             if(mListener != null){
@@ -221,10 +254,17 @@ public class TabPageIndicator extends HorizontalScrollView implements PageIndica
 
         @Override
         public void onPageScrollStateChanged(int state) {
+//            Log.d(TAG,"onPageScrollStateChanged:"+state);
+            switch (state) {
+                case ViewPager.SCROLL_STATE_IDLE:
+                    needEnsurePosition = false;
+//                    changeCurrentItem(currentPosition);
+                    break;
+            }
+//            needEnsurePosition = false;
             if(mListener != null){
                 mListener.onPageScrollStateChanged(state);
             }
         }
     }
-
 }

@@ -3,15 +3,15 @@ package com.lehand.indicator;
 import android.content.Context;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
-import android.widget.TextView;
 
 import com.sixin.uilibrary.R;
 
 /**
- * Created by 周文涛 on 2018/2/9.
+ * @author zhou
+ * <p>默认样式的标签</p>
  */
 
-public class TabView extends TextView {
+class TabView extends android.support.v7.widget.AppCompatTextView {
     public TabView(Context context) {
         this(context,null);
     }

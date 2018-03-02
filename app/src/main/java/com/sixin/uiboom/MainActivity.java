@@ -7,14 +7,14 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 
-import com.lehand.indicator.TabPageIndicator;
+import com.lehand.indicator.ColorTabPageIndicator;
 
 import java.util.ArrayList;
 
 public class MainActivity extends FragmentActivity {
 
     private ArrayList<String> data = new ArrayList<>();
-    private TabPageIndicator indicator;
+    private ColorTabPageIndicator indicator;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -26,6 +26,7 @@ public class MainActivity extends FragmentActivity {
         }
         viewPager.setAdapter(new MyAdapter(getSupportFragmentManager()));
         indicator.setViewPager(viewPager);
+
     }
 
     class MyAdapter extends FragmentPagerAdapter{
