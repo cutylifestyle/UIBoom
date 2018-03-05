@@ -20,7 +20,12 @@ import com.lehand.util.DisplayUtil;
  */
 
 public class ColorTabPageIndicator extends HorizontalScrollView implements PageIndicator {
-
+    // TODO: 2018/3/5 控件的大小
+    // TODO: 2018/3/5 修复左右滑动的bug
+    // TODO: 2018/3/5 滑动方向确定存在问题
+    // TODO: 2018/3/5 滑动过程中的滑动效果有点儿突兀
+    // TODO: 2018/3/5 对于状态信息用一个类进行封装
+    // TODO: 2018/3/5 控件大小有字体的长度来确定
     private static final String TAG = ColorTabPageIndicator.class.getName();
     private ViewPager mViewPager;
     private Runnable mTabSelector;
