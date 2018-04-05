@@ -42,9 +42,7 @@ public class ColorTabPageIndicator extends HorizontalScrollView implements PageI
 
     private int  mCurrentScrollX;
 
-    private boolean needEnsurePosition;
-    private int nextPosition;
-    private int currentPosition;
+    private float mLastPositionOffsetSum;
 
     public ColorTabPageIndicator(Context context) {
         this(context, null);
@@ -199,49 +197,41 @@ public class ColorTabPageIndicator extends HorizontalScrollView implements PageI
         post(mTabSelector);
     }
 
-    // TODO: 2018/2/27  维护一个位置关系  谁是当前的位置   谁是下一个位置
-    private void notifyTabViewUpdate(int position, float positionOffset) {
-        int d = justScrollDirection(positionOffset);
-        if (!needEnsurePosition && d != 0) {
-            nextPosition = position+1;
-            needEnsurePosition = true;
-        }
-        if (d != 0) {
-            handleUpdate(d,position, nextPosition,positionOffset);
-        }
-    }
-
-    private void handleUpdate(int d, int currentPostion, int nextPosition, float postionOffset) {
-        ColorTabView currentTabView = (ColorTabView) mChildView.getChildAt(currentPostion);
+    private void handleUpdate(boolean leftToRight, int currentPosition, int nextPosition, float positionOffset) {
+        ColorTabView currentTabView = (ColorTabView) mChildView.getChildAt(currentPosition);
         ColorTabView nextTabView = (ColorTabView) mChildView.getChildAt(nextPosition);
-        if (currentTabView != null && nextTabView != null) {
-            if (d > 0) {
-                currentTabView.onColorOffset(d,postionOffset,false);
-                nextTabView.onColorOffset(d,postionOffset,true);
-            } else if (d < 0) {
-                currentTabView.onColorOffset(d,postionOffset, true);
-                nextTabView.onColorOffset(d,postionOffset,false);
+        if(currentTabView != null && nextTabView != null){
+            if (leftToRight) {
+                currentTabView.onColorOffset(1,positionOffset,false);
+                nextTabView.onColorOffset(1,positionOffset,true);
+            }else{
+                currentTabView.onColorOffset(1,positionOffset,false);
+                nextTabView.onColorOffset(-1,positionOffset,true);
             }
         }
-    }
-
-    // TODO: 2018/2/27 这儿的mCurrentScrollX可能存在bug
-    private int justScrollDirection(float positionOffset) {
-        int result = mViewPager.getScrollX() - mCurrentScrollX;
-        mCurrentScrollX = mViewPager.getScrollX();
-        return result;
     }
 
     private class TabPageChangeListener implements ViewPager.OnPageChangeListener{
 
         @Override
         public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-            if(position == currentPosition){
-                notifyTabViewUpdate(position,positionOffset);
-            }else{
-                currentPosition = position;
-            }
             Log.d(TAG, "position:" + position+" positionOffset:"+positionOffset);
+            float currentPositionOffsetSum = position + positionOffset;
+            int nextPosition;
+            if(mLastPositionOffsetSum < currentPositionOffsetSum){
+                nextPosition = position+1;
+                handleUpdate(true,position,nextPosition,positionOffset);
+            }else if(mLastPositionOffsetSum > currentPositionOffsetSum){
+                if(currentPositionOffsetSum >= position){
+                    nextPosition = position + 1;
+                    handleUpdate(true,position,nextPosition,positionOffset);
+                }else{
+                    nextPosition = position - 1;
+                    handleUpdate(false,position,nextPosition,positionOffset);
+                }
+            }
+            mLastPositionOffsetSum = currentPositionOffsetSum;
+
             if(mListener != null){
                 mListener.onPageScrolled(position,positionOffset,positionOffsetPixels);
             }
@@ -250,8 +240,8 @@ public class ColorTabPageIndicator extends HorizontalScrollView implements PageI
         @Override
         public void onPageSelected(int position) {
 //            Log.d(TAG, "onPageSelected:" + position);
-            changeCurrentItem(position);
-            scrollToTab(position);
+//            changeCurrentItem(position);
+//            scrollToTab(position);
             if(mListener != null){
                 mListener.onPageSelected(position);
             }
@@ -259,14 +249,11 @@ public class ColorTabPageIndicator extends HorizontalScrollView implements PageI
 
         @Override
         public void onPageScrollStateChanged(int state) {
-//            Log.d(TAG,"onPageScrollStateChanged:"+state);
+            Log.d(TAG,"onPageScrollStateChanged:"+state);
             switch (state) {
                 case ViewPager.SCROLL_STATE_IDLE:
-                    needEnsurePosition = false;
-//                    changeCurrentItem(currentPosition);
                     break;
             }
-//            needEnsurePosition = false;
             if(mListener != null){
                 mListener.onPageScrollStateChanged(state);
             }
